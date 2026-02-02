@@ -1,0 +1,28 @@
+timezone: "Europe/Berlin"
+
+feeds:
+  # Macro / policy / institutions (often have RSS/updates)
+  - name: "ECB Press"
+    category: "macro"
+    url: "https://www.ecb.europa.eu/press/pr/date/rss.en.xml"
+  - name: "Federal Reserve Press"
+    category: "macro"
+    url: "https://www.federalreserve.gov/feeds/press_all.xml"
+  - name: "Eurostat News"
+    category: "macro"
+    url: "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/rss/en"
+
+  # Geopolitics / security / international
+  - name: "UN News"
+    category: "geopolitics"
+    url: "https://news.un.org/feed/subscribe/en/news/all/rss.xml"
+
+  # Crypto / digital finance policy
+  - name: "ESMA News"
+    category: "crypto_policy"
+    url: "https://www.esma.europa.eu/feeds/news.xml"
+
+  # General economics (replace/add depending on your subscriptions)
+  - name: "IMF"
+    category: "macro"
+    url: "https://www.imf.org/en/News/RSS"
