@@ -28,10 +28,22 @@ def run_ingest(db_path: str, sources_cfg: dict) -> dict:
     total = 0
     for feed in sources_cfg["feeds"]:
         items = ingest_feed(feed)
-        total += len(items)
-        for it in items:
-            if upsert_item(conn, it):
-                inserted += 1
+        if len(items) < 10:
+            today = datetime.now(timezone.utc).date().isoformat()
+            out_path = root / "drafts" / f"{today}_draft.md"
+            out_path.write_text(
+                f"# Daily Brief — {today}\n\n"
+                "⚠️ Not enough items ingested to generate a reliable brief today.\n\n"
+                f"- Items found: {len(items)}\n"
+                "- Action: check RSS sources in config/sources.yaml\n",
+                encoding="utf-8"
+            )
+            print("Not enough items; wrote stub draft and exiting cleanly.")
+            return
+            total += len(items)
+            for it in items:
+                if upsert_item(conn, it):
+                    inserted += 1
     return {"total_fetched": total, "inserted": inserted}
 
 def run_cluster_and_select(items: list[dict], model: str) -> dict:
