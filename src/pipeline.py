@@ -214,7 +214,7 @@ def main():
     (root / "drafts").mkdir(exist_ok=True)
     (root / "data").mkdir(exist_ok=True)
 
-    model = os.environ.get("OPENAI_MODEL", "gpt-5-mini")
+    model = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
 
     ingest_stats = run_ingest(db_path, cfg)
 
