@@ -25,6 +25,19 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Check secrets
+        run: |
+          python - <<'PY'
+          import os, sys
+          key = os.getenv("OPENAI_API_KEY","")
+          print("OPENAI_API_KEY present:", bool(key))
+          if not key:
+            raise SystemExit("Missing OPENAI_API_KEY secret")
+          PY
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+
       - name: Run pipeline
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
