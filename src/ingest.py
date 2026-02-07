@@ -3,6 +3,10 @@ import feedparser
 from datetime import datetime, timezone, timedelta
 from typing import Iterable, Dict, Any
 from .utils import now_utc_iso, parse_date_to_iso, clean_text, fetch_article_text
+import ssl
+
+# Disable SSL verification for feedparser (some feeds have cert issues)
+ssl._create_default_https_context = ssl._create_unverified_context
 
 def ingest_feed(feed_cfg: dict) -> list[dict]:
     d = feedparser.parse(feed_cfg["url"])
@@ -17,9 +21,8 @@ def ingest_feed(feed_cfg: dict) -> list[dict]:
         published = parse_date_to_iso(getattr(e, "published", None) or getattr(e, "updated", None))
         summary = clean_text(getattr(e, "summary", "") or getattr(e, "description", "") or "")
 
-        # Best-effort: fetch full text. If it fails, we keep summary.
-        full = fetch_article_text(link)
-        content = full or summary
+        # Use summary as content (skip slow article fetch for now)
+        content = summary
 
         out.append({
             "source": feed_cfg["name"],

@@ -5,3 +5,4 @@ lxml==5.2.2
 python-dateutil==2.9.0.post0
 PyYAML==6.0.2
 openai==1.66.3
+python-dotenv==1.0.0

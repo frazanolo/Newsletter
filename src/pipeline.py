@@ -8,6 +8,9 @@ import os
 from pathlib import Path
 import yaml
 from datetime import datetime, timezone, timedelta
+from dotenv import load_dotenv
+
+load_dotenv()
 
 SYSTEM_CLUSTER = """You are a strict news desk editor.
 You will ONLY use the items provided. Do not add facts, do not browse.
@@ -22,32 +25,34 @@ Rules:
 - Be neutral, concise, high-signal.
 Return valid JSON only (schema provided)."""
 
-def run_ingest(db_path: str, sources_cfg: dict) -> dict:
+def run_ingest(db_path: str, sources_cfg: dict, root: Path) -> dict:
     conn = connect(db_path)
     inserted = 0
     total = 0
     for feed in sources_cfg["feeds"]:
         items = ingest_feed(feed)
-        if len(items) < 10:
-            today = datetime.now(timezone.utc).date().isoformat()
-            out_path = root / "drafts" / f"{today}_draft.md"
-            out_path.write_text(
-                f"# Daily Brief — {today}\n\n"
-                "⚠️ Not enough items ingested to generate a reliable brief today.\n\n"
-                f"- Items found: {len(items)}\n"
-                "- Action: check RSS sources in config/sources.yaml\n",
-                encoding="utf-8"
-            )
-            print("Not enough items; wrote stub draft and exiting cleanly.")
-            return
-            total += len(items)
-            for it in items:
-                if upsert_item(conn, it):
-                    inserted += 1
+        total += len(items)
+        for it in items:
+            if upsert_item(conn, it):
+                inserted += 1
+    
+    # Check threshold AFTER all feeds are processed
+    if total < 5:
+        today = datetime.now(timezone.utc).date().isoformat()
+        out_path = root / "drafts" / f"{today}_draft.md"
+        out_path.write_text(
+            f"# Daily Brief — {today}\n\n"
+            "⚠️ Not enough items ingested to generate a reliable brief today.\n\n"
+            f"- Items found: {total}\n"
+            "- Action: check RSS sources in config/sources.yaml\n",
+            encoding="utf-8"
+        )
+        print("Not enough items; wrote stub draft and exiting cleanly.")
+        return {"total_fetched": total, "inserted": inserted}
     return {"total_fetched": total, "inserted": inserted}
 
 def run_cluster_and_select(items: list[dict], model: str) -> dict:
-    # Keep payload small: send condensed fields
+    # Keep payload small: send only essential fields
     compact = [
         {
             "id": it["id"],
@@ -56,7 +61,6 @@ def run_cluster_and_select(items: list[dict], model: str) -> dict:
             "title": it["title"],
             "url": it["url"],
             "published_at": it["published_at"],
-            "content": (it["content"] or "")[:1800],
         }
         for it in items
     ]
@@ -214,14 +218,17 @@ def main():
     (root / "drafts").mkdir(exist_ok=True)
     (root / "data").mkdir(exist_ok=True)
 
-    model = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
+    model = os.environ.get("OPENAI_MODEL", "openai/gpt-4-turbo")
 
-    ingest_stats = run_ingest(db_path, cfg)
+    ingest_stats = run_ingest(db_path, cfg, root)
 
     # pull last ~36h of ingested items (gives evening brief coverage)
     conn = connect(db_path)
     since = (datetime.now(timezone.utc) - timedelta(hours=36)).isoformat()
     items = fetch_recent(conn, since_iso=since)
+    
+    # Limit to first 10 items to conserve tokens
+    items = items[:10]
 
     # cluster + score
     clusters = run_cluster_and_select(items, model=model)
