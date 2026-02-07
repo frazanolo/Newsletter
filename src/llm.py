@@ -31,7 +31,7 @@ def llm_json(model: str, system: str, user: str) -> dict:
             {"role": "user", "content": user}
         ],
         "temperature": 0.2,
-        "max_tokens": 400
+        "max_tokens": 300
     }
 
     resp = requests.post(
